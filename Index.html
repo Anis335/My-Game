@@ -74,8 +74,10 @@
             width: 100%;
             margin-top: 5px;
             transition: all 0.3s;
+            border-radius: 4px; /* Added aesthetic detail */
         }
         .btn:hover { background: #4fc3f7; color: #000; }
+        .btn:active { transform: scale(0.98); }
 
         /* Detail Modal */
         #info-modal {
@@ -139,13 +141,19 @@
 
     <div id="ui-layer">
         <h1>Galaxy Control</h1>
+        
+        <!-- MODIFIED: Added id="speedValue" span for counter -->
         <div class="control-group">
-            <label>Time Speed</label>
+            <label>Time Speed (<span id="speedValue">1.0</span>x)</label>
             <input type="range" id="speedSlider" min="0" max="5" step="0.1" value="1">
         </div>
+
+        <!-- MODIFIED: Added Back to Solar System button -->
         <div class="control-group">
             <button class="btn" id="toggleOrbits">Toggle Orbit Lines</button>
+            <button class="btn" id="resetView">Back to Solar System</button>
         </div>
+
         <div style="font-size: 0.8rem; color: #888; margin-top: 10px;">
             Left Click: Select Planet<br>
             Right Click: Pan<br>
@@ -255,6 +263,9 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
+        // NEW: Store the default camera position for the "Back to Solar System" button
+        const DEFAULT_CAMERA_POSITION = new THREE.Vector3(0, 150, 300); 
+
         // --- Initialization ---
         function init() {
             scene = new THREE.Scene();
@@ -262,7 +273,7 @@
             scene.fog = new THREE.FogExp2(0x000000, 0.0006);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000);
-            camera.position.set(0, 150, 300);
+            camera.position.copy(DEFAULT_CAMERA_POSITION); // Use default position
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -296,9 +307,18 @@
             // Listeners
             window.addEventListener('resize', onWindowResize, false);
             window.addEventListener('pointerdown', onDocumentMouseDown, false);
-            document.getElementById('speedSlider').addEventListener('input', (e) => timeSpeed = parseFloat(e.target.value));
+            
+            const speedSlider = document.getElementById('speedSlider');
+            speedSlider.addEventListener('input', (e) => {
+                timeSpeed = parseFloat(e.target.value);
+                updateSpeedDisplay(); // Update the display
+            });
             document.getElementById('toggleOrbits').addEventListener('click', toggleOrbits);
             document.getElementById('close-modal').addEventListener('click', closeModal);
+            // NEW: Listener for the reset view button
+            document.getElementById('resetView').addEventListener('click', resetCameraView);
+
+            updateSpeedDisplay(); // Call once to initialize the display
 
             document.getElementById('loading').style.opacity = 0;
             animate();
@@ -580,6 +600,22 @@
             const isVisible = orbitLines[0].visible;
             orbitLines.forEach(line => line.visible = !isVisible);
             asteroidSystem.visible = !isVisible;
+        }
+
+        // NEW: Function to reset camera position
+        function resetCameraView() {
+            // Resetting the camera position and target back to the initial view
+            // This allows the user to quickly return to the default solar system overview.
+            camera.position.copy(DEFAULT_CAMERA_POSITION);
+            controls.target.set(0, 0, 0); // Focus on the center (Sun)
+            controls.update();
+        }
+
+        // NEW: Function to update the speed counter display
+        function updateSpeedDisplay() {
+            const speedDisplay = document.getElementById('speedValue');
+            // Show the time speed value, formatted to one decimal place
+            speedDisplay.innerText = timeSpeed.toFixed(1); 
         }
 
         function updateLabels() {
